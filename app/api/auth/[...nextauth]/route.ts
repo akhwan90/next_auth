@@ -1,8 +1,9 @@
 import prisma from "@/app/lib/prisma";
-import { AuthOptions } from "next-auth";
-import { CredentialsProvider } from "next-auth/providers/credentials";
+import NextAuth, { Account, AuthOptions, Profile, Session, User } from "next-auth";
+import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { JWT } from "next-auth/jwt";
 
 export const authOptions: AuthOptions = {
     providers: [
@@ -77,5 +78,30 @@ export const authOptions: AuthOptions = {
         strategy: 'jwt',
         maxAge: 30 * 24 * 60 * 60,
         updateAge: 24 * 60 * 60,
+    },
+    callbacks: {
+        async session(params: {session: Session; token: JWT; user: User}) {
+            if (params.session.user) {
+                params.session.user.email = params.token.email;
+            }
+
+            return params.session;
+        },
+        async jwt(params: {
+            token: JWT;
+            user?: User | undefined;
+            account?: Account | null | undefined;
+            profile?: Profile | undefined;
+            isNewUser?: boolean | undefined;
+        }) {
+            if(params.user) {
+                params.token.email = params.user.email;
+            }
+
+            return params.token;
+        }
     }
 }
+
+const handler = NextAuth(authOptions);
+export { handler as GET, handler as POST};
